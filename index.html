@@ -18,14 +18,11 @@
         <h1>Tablesync</h1>
         <p>Field-level table synchronization, including algorithm, RESTful API spec, and reference implementations.</p>
 
-        <p class="view"><a href="https://github.com/needbee/tablesync">View the Project on GitHub <small>needbee/tablesync</small></a></p>
+        <p class="view"><a href="#overview">Overview</a></p>
+        <p class="view"><a href="#algorithm">Algorithm</a></p>
+        <p class="view"><a href="#api-spec">API Specification</a></p>
+        <p class="view"><a href="#ref-impl">Reference Implementation</a></p>
 
-
-        <ul>
-          <li><a href="https://github.com/needbee/tablesync/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/needbee/tablesync/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/needbee/tablesync">View On <strong>GitHub</strong></a></li>
-        </ul>
       </header>
       <section>
 <h3>
@@ -51,7 +48,7 @@
 </ul>
 
 <h3>
-<a name="overview" class="anchor" href="#design"><span class="octicon octicon-link"></span></a>Design</h3>
+<a name="algorithm" class="anchor" href="#algorithm"><span class="octicon octicon-link"></span></a>Algorithm</h3>
 
 <p>The system needs to handle inserts, updates, and deletes. Since the updates case is the most complex, let's start with that.</p>
 
@@ -163,7 +160,70 @@
 <li>The client applies all these changes as usual, resulting in an up-to-date database.</li>
 </ol>
 
-<h3>Reference Implementation</h3>
+<h3>
+<a name="api-spec" class="anchor" href="#api-spec"><span class="octicon octicon-link"></span></a>API Specification</h3>
+
+<p>The following is a recommended RESTful JSON web service specification for performing synchronization using the above model. Analogous operations could be made using other data formats such as XML and other architectures such as SOAP.</p>
+
+<h4>Getting a Client ID</h4>
+
+<p>The Client ID is needed to create primary keys that are unique across all clients. Uniqueness is guaranteed by having a client ID issued from the server.</p>
+
+<pre><code>POST /sync/client
+
+Request Data: none
+
+Response Data:
+{
+  "status": "success",
+  "client": {
+    "id": "…"
+  }
+}
+</code></pre>
+
+<p>Semantically, the POST operation is creating a new Client object, which is then returned. That object only has a single field: the ID field.</p>
+
+<h4>Syncing</h4>
+
+<pre><code>POST /sync/changes
+
+Request Headers:
+  Tablesync-Since: 2014-03-23T07:00:00+05:00
+
+Request Data: (changes at the client level for the server to make)
+{
+  "changes": [
+    {
+      "a": "SET_FIELD",
+      "tb": "contacts",
+      "k": "nDHeYUOc-3CG602mp",
+      "f": "email",
+      "tm": "2014-03-23T11:56:00+05:00",
+      "v": "newemail@sample.org"
+    }
+  ]
+}
+
+Response Data: (changes at the server level for the client to make)
+{
+  "changes": [
+    {
+      "a": "SET_FIELD",
+      "tb": "contacts",
+      "k": "nDHeYUOc-3CG602mp",
+      "f": "phone",
+      "tm": "2014-03-22T20:56:00+05:00",
+      "v": "555-555-5555"
+    }
+  ]
+}
+</code></pre>
+
+<p>Note: the above data formats are fairly verbose, but have been chosen for the sake of simplicity. They could be compressed by, for example, grouping SET_FIELD operations by table and then by record. Alternatively, GZIP compression at the HTTP level may be sufficient.</p>
+
+<h3>
+<a name="ref-impl" class="anchor" href="#ref-impl"><span class="octicon octicon-link"></span></a>Reference Implementation</h3>
 
 <h4>Database Changes</h4>
 
@@ -173,10 +233,6 @@
 <li>Instead of incremental IDs, the primary keys need to be non-incremental, manually specified. This will allow each client to have its own set of primary key values, so that records added at the same time in multiple clients don't conflict. This could hypothetically be an int, but for the sake of clarity here it will be a CHAR field.</li>
 <li>A single metadata table needs to be added on both the client and server side: (specified here in terms of MySQL, but just needs to store analogous data)</li>
 </ol>
-
-<h3>
-<a name="overview" class="anchor" href="#design"><span class="octicon octicon-link"></span></a>Reference Implementation</h3>
-
 
 <h4>Primary Keys</h4>
 
