@@ -53,6 +53,82 @@
 <h3>
 <a name="overview" class="anchor" href="#design"><span class="octicon octicon-link"></span></a>Design</h3>
 
+<p>The system needs to handle inserts, updates, and deletes. Since the updates case is the most complex, let's start with that.</p>
+
+<h4>Field Updates</h4>
+
+<p>To synchronize field changes, the client will need to be able to tell the server which fields have changed since the last sync, and what their new values are. Because of this, the client will need to track two types of metadata.</p>
+
+<p>First, the client will need to track the time of last sync.</p>
+
+<p>Second, the client will need to track field changes themselves. It actually doesn't need to keep a record of every time a field changes; just the fact that it changed at least once since the last sync, and what the latest value is. Therefore we only need at most one change entry for each field.</p>
+
+<p>This is sufficient for a one-directional sync, but what if fields have changed on the server as well? Which change wins? To determine this, we need to record the time that the field change was made. Whichever of the two changes was made later will be taken as the correct value.</p>
+
+<p>We can track this information about field change times by creating a metadata table with the following fields, on both the client and server:</p>
+
+<table>
+  <caption>Table <code>changes</code></caption>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Size</th>
+      <th>Required</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>action</td>
+      <td>Either CREATE, SET_FIELD, or DELETE</td>
+      <td></td>
+      <td>required</td>
+      <td>unique index A</td>
+    </tr>
+    <tr>
+      <td>table name</td>
+      <td>string</td>
+      <td>50</td>
+      <td>required</td>
+      <td>unique index A</td>
+    </tr>
+    <tr>
+      <td>primary key</td>
+      <td>string</td>
+      <td>17</td>
+      <td>required</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>field name</td>
+      <td>string</td>
+      <td>50</td>
+      <td>optional</td>
+      <td>unique index A</td>
+    </tr>
+    <tr>
+      <td>timestamp</td>
+      <td>timestamp</td>
+      <td></td>
+      <td>required</td>
+      <td>set to current timestap</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>For now, we are only considering the SET_FIELD action. Note that the value of the field does not need to be stored in the metadata table; that can be retrieved from the main table itself. Also note that there is a unique index on action, table name, and field name, so there will only be one SET_FIELD entry for each field.</p>
+
+<p>The sync operation works as follows:</p>
+
+<ol>
+<li>The client sends a sync request to the server. It sends the time of last sync, as well as all of the field update records, including the time of the change and what the new value is.</li>
+<li>The server compares each field's update time against its own update times for that field. If the client's time is later, the field is updated (and the server's field update time is updated as well).</li>
+<li>The server then finds any fields that have changed since the last sync (except for those changed by that client). These field values are sent back to the client (update time is not needed).</li>
+<li>The client updates any field values sent back from the server.</li>
+<li>The client empties its <code>changes</code> table, since that data is no longer needed.</li>
+</ol>
+
 <h4>Database Changes</h4>
 
 <p>Only a few changes need to be made to the database to support synchronization.</p>
@@ -62,55 +138,9 @@
 <li>A single metadata table needs to be added on both the client and server side: (specified here in terms of MySQL, but just needs to store analogous data)</li>
 </ol>
 
-<table>
-  <caption>Table <code>changes</code></caption>
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Type</th>
-      <th>Size</th>
-      <th>Null</th>
-      <th>Extra</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>action</td>
-      <td>ENUM('CREATE', 'SET_FIELD', 'DELETE')</td>
-      <td></td>
-      <td>NOT NULL</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>table_name</td>
-      <td>VARCHAR</td>
-      <td>50</td>
-      <td>NOT NULL</td>
-      <td></td>
-    </tr>
-    <td>
-      <td>pk</td>
-      <td>CHAR</td>
-      <td>17</td>
-      <td>NOT NULL</td>
-      <td></td>
-    </td>
-    <tr>
-      <td>field_name</td>
-      <td>VARCHAR</td>
-      <td>50</td>
-      <td>NULL</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>timestamp</td>
-      <td>TIMESTAMP</td>
-      <td></td>
-      <td>NOT NULL</td>
-      <td>CURRENT_TIMESTAMP</td>
-    </tr>
-  </tbody>
-</table>
+<h3>
+<a name="overview" class="anchor" href="#design"><span class="octicon octicon-link"></span></a>Reference Implementation</h3>
+
 
 <h4>Primary Keys</h4>
 
