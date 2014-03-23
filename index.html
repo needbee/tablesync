@@ -41,13 +41,67 @@
 <li>They expect this synchronization to be transparent and reliable: they should not need to know when data is up-to-date or not, and they should not need to reconcile conflicts.</li>
 </ul>
 
-The following is a proposal for a simple way to achieve these goals. It's not a foolproof algorithm, but it should work for most basic cases. In addition to the above requirements, the following design principles were followed:
+<p>The following is a proposal for a simple way to achieve these goals. It's not a foolproof algorithm, but it should work for most basic cases. In addition to the above requirements, the following design principles were followed:</p>
 
 <ul>
+<li>Technology independence. Any two tabular data repositories should be able to be synchronized, as long as they are able to communicate over the network.</li>
 <li>Synchronziation happens at the field level. If the user changes field A on a record on one device and field B on another record elsewhere, both updates should be preserved.</li> 
 <li>As much as possible, standand relational database paradigms should be used on both the client and server side. Any restrictions on table design or extra metadata stored should be minimal.</li>
 <li>Device time can be considered reliable for the sake of versioning. Increasing user of network time servers makes this more likely. In the case of a device getting out of sync, this algorithm is designed for situations where changes are infrequent enough and changes are low-risk enough that a problematic error is unlikely.</li>
 </ul>
+
+<h3>
+<a name="overview" class="anchor" href="#design"><span class="octicon octicon-link"></span></a>Design</h3>
+
+<p>Only a few changes need to be made to the database to support synchronization.</p>
+
+<ol>
+<li>Instead of incremental IDs, the primary keys need to be non-incremental, manually specified. This will allow each client to have its own set of primary key values, so that records added at the same time in multiple clients don't conflict.</li>
+<li>A single metadata table needs to be added on both the client and server side: (specified here in terms of MySQL, but just needs to store analogous data)</li>
+</ol>
+
+<table>
+  <caption>Table `changes`</caption>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Size</th>
+      <th>Null</th>
+      <th>Extra</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>action</td>
+      <td>ENUM('insert','update','delete')</td>
+      <td></td>
+      <td>NOT NULL</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>table_name</td>
+      <td>VARCHAR</td>
+      <td>50</td>
+      <td>NOT NULL</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>field_name</td>
+      <td>VARCHAR</td>
+      <td>50</td>
+      <td>NULL</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>timestamp</td>
+      <td>TIMESTAMP</td>
+      <td></td>
+      <td>NOT NULL</td>
+      <td>CURRENT_TIMESTAMP</td>
+    </tr>
+  </tbody>
+</table>
 
 <pre><code>$ cd your_repo_root/repo_name
 $ git fetch origin
