@@ -28,37 +28,31 @@
         </ul>
       </header>
       <section>
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+<h3>
+<a name="overview" class="anchor" href="#overivew"><span class="octicon octicon-link"></span></a>Overview</h3>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>This page is a proposal for a simple tabular data table synchronization algorithm that is easily implementable by developers who are comfortable with basic database and web service programming.</p>
+
+<p>The web brought the thin-client paradigm back to the forefront. In this paradigm, data is stored in a single server-side database, so no data synchronization is needed. With the advent of mobile applications, however, the thick client is back. In this paradigm, mobile users have a number of expectations that cannot be met by a single server-side database:</p>
+
+<ul>
+<li>They expect that their data is available and editable whether or not they have an internet connection.</li>
+<li>They expect that their data is synchronized between multiple devices (and the web interface, if there is one).</li>
+<li>They expect this synchronization to be transparent and reliable: they should not need to know when data is up-to-date or not, and they should not need to reconcile conflicts.</li>
+</ul>
+
+The following is a proposal for a simple way to achieve these goals. It's not a foolproof algorithm, but it should work for most basic cases. In addition to the above requirements, the following design principles were followed:
+
+<ul>
+<li>Synchronziation happens at the field level. If the user changes field A on a record on one device and field B on another record elsewhere, both updates should be preserved.</li> 
+<li>As much as possible, standand relational database paradigms should be used on both the client and server side. Any restrictions on table design or extra metadata stored should be minimal.</li>
+<li>Device time can be considered reliable for the sake of versioning. Increasing user of network time servers makes this more likely. In the case of a device getting out of sync, this algorithm is designed for situations where changes are infrequent enough and changes are low-risk enough that a problematic error is unlikely.</li>
+</ul>
 
 <pre><code>$ cd your_repo_root/repo_name
 $ git fetch origin
 $ git checkout gh-pages
 </code></pre>
-
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
-
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
-
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
-
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/needbee">needbee</a></p>
