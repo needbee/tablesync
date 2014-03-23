@@ -53,15 +53,17 @@
 <h3>
 <a name="overview" class="anchor" href="#design"><span class="octicon octicon-link"></span></a>Design</h3>
 
+<h4>Database Changes</h4>
+
 <p>Only a few changes need to be made to the database to support synchronization.</p>
 
 <ol>
-<li>Instead of incremental IDs, the primary keys need to be non-incremental, manually specified. This will allow each client to have its own set of primary key values, so that records added at the same time in multiple clients don't conflict.</li>
+<li>Instead of incremental IDs, the primary keys need to be non-incremental, manually specified. This will allow each client to have its own set of primary key values, so that records added at the same time in multiple clients don't conflict. This could hypothetically be an int, but for the sake of clarity here it will be a CHAR field.</li>
 <li>A single metadata table needs to be added on both the client and server side: (specified here in terms of MySQL, but just needs to store analogous data)</li>
 </ol>
 
 <table>
-  <caption>Table `changes`</caption>
+  <caption>Table <code>changes</code></caption>
   <thead>
     <tr>
       <th>Name</th>
@@ -74,7 +76,7 @@
   <tbody>
     <tr>
       <td>action</td>
-      <td>ENUM('insert','update','delete')</td>
+      <td>ENUM('CREATE', 'SET_FIELD', 'DELETE')</td>
       <td></td>
       <td>NOT NULL</td>
       <td></td>
@@ -86,6 +88,13 @@
       <td>NOT NULL</td>
       <td></td>
     </tr>
+    <td>
+      <td>pk</td>
+      <td>CHAR</td>
+      <td>17</td>
+      <td>NOT NULL</td>
+      <td></td>
+    </td>
     <tr>
       <td>field_name</td>
       <td>VARCHAR</td>
@@ -103,10 +112,28 @@
   </tbody>
 </table>
 
+<h4>Primary Keys</h4>
+
+<p>When a client is initialized for the first time, it must connect to the server to get a client ID. This is a unique 8-character string issued by the server. It should be stored by the client indefinitely. It is used for creating primary keys: whenever a client creates a new record, it creates a primary key by concatenating the client ID, a hyphen, and an 8-character record ID that is unique within that table. The combination of the client ID and record ID are ensured to be unique across all clients, so that there will never be a duplicated primary key. The application can determine which characters are valid characters to include in the client ID and record ID.</p>
+
+<p>For example, a client might be issued the client ID 'nDHeYUOc'. When creating a new record, the record ID generated might be '3CG602mp'. In this case, the primary key of that record would be 'nDHeYUOc-3CG602mp'. This would be unique across all clients because no other clients' records would start with 'nDHeYUOc', and the client would ensure that no other records on that table would end with '3CG602mp'.</p>
+
+<h4>Recording Changes</h4>
+
+<p>When an <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code> operation is done in the client database, it needs to be recorded in the <code>changes</code> table. They are recorded as follows:</p>
+
+<ul>
+<li><code>INSERT</code>: add a record to the <code>changes</code> table with action = 'CREATE'. Include the primary key. Then, for each field that was set as part of the statement, add a record to the <code>changes</code> table with action = 'SET_FIELD'.</li>
+<li><code>UPDATE</code>: for each field that is set as part of the statement, add a record to the <code>changes</code> table with action = 'SET_FIELD'. To minimize sync bandwidth, not every field in the table should receive an UPDATE statement; just the fields that changed.</li>
+<li><code>DELETE</code>: add a record to the <code>changes</code> table with action = 'DELETE'. Include the primary key.</li>
+</ul>
+
+<!--
 <pre><code>$ cd your_repo_root/repo_name
 $ git fetch origin
 $ git checkout gh-pages
 </code></pre>
+-->
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/needbee">needbee</a></p>
