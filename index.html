@@ -129,6 +129,42 @@
 <li>The client empties its <code>changes</code> table, since that data is no longer needed.</li>
 </ol>
 
+<h4>Record Deletion</h4>
+
+<p>Record deletion is easy to sync: just add a table change record with an action of DELETE. When it is synced up to the server, the server deletes the appropriate records from the main table, then stores the DELETE record. If a client receives a DELETE record back from the server, the client deletes the appropriate record.</p>
+
+<h4>Record Creation</h4>
+
+<p>Record creation is a bit more complex because of primary keys. If autoincrementing integer primary keys are used, then if two clients create a record of the same type they will have the same primary key, and resolution will be needed. Instead, this system uses non-incremental primary keys, as follows.</p>
+
+<p>When a client is initialized for the first time, it must connect to the server to get a client ID. This is a unique random string issued by the server. It should be stored by the client indefinitely. It is used for creating primary keys: whenever a client creates a new record, it creates a primary key by concatenating the client ID, a hyphen, and a record ID string that is unique within that table. The combination of the client ID and record ID are ensured to be unique across all clients, so that there will never be a duplicated primary key. The application can determine which characters are valid characters to include in the client ID and record ID.</p>
+
+<p>For example, a client might be issued the client ID 'nDHeYUOc'. When creating a new record, the record ID generated might be '3CG602mp'. In this case, the primary key of that record would be 'nDHeYUOc-3CG602mp'. This would be unique across all clients because no other clients' records would start with 'nDHeYUOc', and the client would ensure that no other records on that table would end with '3CG602mp'.</p>
+
+<p>To sync the record creation, a CREATE record is added to the <code>changes</code> table, specifying the primary key that the client chose. Note that, unlike in SQL, the CREATE record does not specify initial values for other fields. Those should be logged as separate SET_FIELD records.</p>
+
+<p>If the server has required columns (i.e. NOT NULL columns in a SQL database), then the server may need to implement record creation by looking for all SET_FIELD records for that same primary key, and setting all the values at once.</p>
+
+<p>As usual, the server stores the CREATE records and sends them down to clients. Clients create the record as needed.</p>
+
+<h4>Initial Data Download</h4>
+
+<p>Since data transfer of all updates happens through the same sync interface, it would be nice if initial data population could be done through the same interface as well. This is fairly straightforward:</p>
+
+<ol>
+<li>The client requests a sync and does not specify a start time.</li>
+<li>The server interprets this as a request to transfer all data. It needs to determine which data to return:
+  <ol>
+  <li>For any DELETE records, the server filters out any CREATE and SET_FIELD records for that primary key, since the record was ultimately deleted.</li>
+  <li>However, no SET_FIELD records need to be filtered out, since the server does not store every change made to them; only the latest value for them.</li>
+  </ol>
+</li>
+<li>The server returns all records. (Note: this could be a lot of data, but data format optimization to minimize bandwidth used is handled as part of the RESTful API specification below. Ideally the data size should be able to be fairly close to the size it would take separate from this syncing system.)</li>
+<li>The client applies all these changes as usual, resulting in an up-to-date database.</li>
+</ol>
+
+<h3>Reference Implementation</h3>
+
 <h4>Database Changes</h4>
 
 <p>Only a few changes need to be made to the database to support synchronization.</p>
