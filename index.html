@@ -222,7 +222,9 @@ Response Data: (changes at the server level for the client to make)
 }
 </code></pre>
 
-<p>Note: the above data formats are fairly verbose, but have been chosen for the sake of simplicity. They could be compressed by, for example, grouping SET_FIELD operations by table and then by record. Alternatively, GZIP compression at the HTTP level may be sufficient.</p>
+<p>Note that the full primary key is sent, including the client ID. The server can enforce that created records start with the client ID, but it must not enforce that for SET_FIELDs or DELETEs, since the client can operate on records created by other clients.</p>
+
+<p>The above data formats are fairly verbose, but have been chosen for the sake of simplicity. They could be compressed by, for example, grouping SET_FIELD operations by table and then by record. Alternatively, GZIP compression at the HTTP level may be sufficient.</p>
 
 <h3>
 <a name="ref-impl" class="anchor" href="#ref-impl"><span class="octicon octicon-link"></span></a>Reference Implementation</h3>
